@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xcodebuild -list)",
+      "Bash(xcrun simctl *)",
+      "Bash(git -C /Users/ajaygirolkar log --oneline -10)"
+    ]
+  }
+}
