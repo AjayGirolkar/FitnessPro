@@ -85,6 +85,29 @@ struct WorkoutPlayerViewModelTests {
         #expect(vm.currentSet.weight == 0)
     }
 
+    @Test func pausedTickFreezesElapsed() {
+        let vm = makeVM()
+        vm.tick()
+        #expect(vm.elapsedSeconds == 1)
+        vm.togglePause()
+        #expect(vm.isPaused)
+        vm.tick(); vm.tick()
+        #expect(vm.elapsedSeconds == 1)   // frozen while paused
+        vm.togglePause()
+        vm.tick()
+        #expect(vm.elapsedSeconds == 2)   // resumes
+    }
+
+    @Test func pauseFreezesRestCountdown() {
+        let vm = makeVM()
+        vm.completeSet()                  // ex0 set0 → rest (30s)
+        guard case .resting(let before) = vm.phase else { Issue.record("expected rest"); return }
+        vm.togglePause()
+        vm.tick(); vm.tick()
+        guard case .resting(let after) = vm.phase else { Issue.record("expected rest"); return }
+        #expect(after == before)          // countdown held
+    }
+
     @Test func onCompleteFiresOnlyOnce() {
         let vm = makeVM()
         var count = 0

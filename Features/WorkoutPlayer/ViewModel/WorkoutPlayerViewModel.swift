@@ -37,6 +37,7 @@ final class WorkoutPlayerViewModel {
     private(set) var restTotal = 0
     private(set) var timedRemaining = 0
     private(set) var isTimedRunning = false
+    private(set) var isPaused = false
 
     private var ticker: Task<Void, Never>?
     private var didFinish = false
@@ -54,7 +55,7 @@ final class WorkoutPlayerViewModel {
         ticker = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
-                self?.onTick()
+                self?.tick()
             }
         }
     }
@@ -64,7 +65,17 @@ final class WorkoutPlayerViewModel {
         ticker = nil
     }
 
-    private func onTick() {
+    /// Halt/resume the clock — pauses elapsed time, rest countdown and any
+    /// running timed move. The ticker keeps firing but `tick()` no-ops.
+    func togglePause() {
+        guard phase != .finished else { return }
+        isPaused.toggle()
+    }
+
+    /// One second of progress. Internal (not private) so tests can drive the
+    /// flow deterministically without the real timer.
+    func tick() {
+        guard !isPaused else { return }
         switch phase {
         case .finished:
             return

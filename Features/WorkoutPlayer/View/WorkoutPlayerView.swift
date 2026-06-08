@@ -63,10 +63,21 @@ struct WorkoutPlayerView: View {
                 Text(viewModel.day.focus)
                     .font(.cardTitle).foregroundStyle(Theme.Colors.textPrimary)
                 Spacer()
+                if viewModel.phase != .finished {
+                    Button { viewModel.togglePause() } label: {
+                        Image(systemName: viewModel.isPaused ? "play.fill" : "pause.fill")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(viewModel.isPaused ? .black : Theme.Colors.textSecondary)
+                            .frame(width: 36, height: 36)
+                            .background(viewModel.isPaused ? AnyShapeStyle(Theme.Colors.accent)
+                                                          : AnyShapeStyle(Theme.Colors.surface),
+                                        in: Circle())
+                    }
+                }
                 Text(timeString(viewModel.elapsedSeconds))
                     .font(.cardTitle.monospacedDigit())
                     .foregroundStyle(Theme.Colors.textSecondary)
-                    .frame(width: 64, alignment: .trailing)
+                    .frame(width: 56, alignment: .trailing)
             }
             StepProgressBar(current: viewModel.completedSets, total: viewModel.totalSets)
         }

@@ -18,6 +18,7 @@ final class AppContainer {
     let keyValueStore: KeyValueStore
     let authService: AuthService
     let exercises: ExerciseProviding
+    let playlists: PlaylistStore
     let appState: AppState
 
     init(
@@ -28,6 +29,7 @@ final class AppContainer {
         self.apiClient = apiClient
         self.keyValueStore = keyValueStore
         self.exercises = exercises
+        self.playlists = PlaylistStore(store: keyValueStore)
         let auth = MockAuthService(store: keyValueStore)
         self.authService = auth
         self.appState = AppState(store: keyValueStore, currentUser: auth.currentUser())
@@ -109,7 +111,7 @@ final class AppContainer {
     }
 
     func makeWorkoutLibraryViewModel() -> WorkoutLibraryViewModel {
-        WorkoutLibraryViewModel(provider: exercises)
+        WorkoutLibraryViewModel(provider: exercises, playlistStore: playlists)
     }
 
     func makeWorkoutPlayerViewModel(day: PlanDay) -> WorkoutPlayerViewModel {
