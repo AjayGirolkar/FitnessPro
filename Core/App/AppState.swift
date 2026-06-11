@@ -9,6 +9,7 @@
 
 import Foundation
 import Observation
+import WidgetKit
 
 @MainActor
 @Observable
@@ -55,6 +56,30 @@ final class AppState {
         } else {
             route = .onboarding
         }
+
+        publishWidgetSnapshot()
+    }
+
+    // MARK: - Widget snapshot
+
+    /// Mirrors training state into the shared App Group + reloads widgets so
+    /// the home-screen streak widget stays current without launching the app.
+    private func publishWidgetSnapshot() {
+        let today = activePlan?.days.first
+        let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: .now) ?? .distantPast
+        let weeklyVolume = completions
+            .filter { $0.date >= weekAgo }
+            .reduce(0) { $0 + $1.totalVolume }
+
+        WidgetSnapshot(
+            streak: streak,
+            workoutsLogged: completions.count,
+            todayFocus: today?.focus,
+            todayExerciseCount: today?.exercises.count ?? 0,
+            weeklyVolume: weeklyVolume,
+            updatedAt: .now
+        ).write()
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     // MARK: - Transitions
@@ -89,6 +114,7 @@ final class AppState {
         self.activePlan = plan
         store.set(plan, forKey: Keys.plan)
         route = .main
+        publishWidgetSnapshot()
     }
 
     func regeneratePlan() {
@@ -101,6 +127,7 @@ final class AppState {
     func didCompleteWorkout(_ completion: CompletedWorkout) {
         completions.append(completion)
         store.set(completions, forKey: Keys.completions)
+        publishWidgetSnapshot()
     }
 
     /// Number of consecutive calendar days with a logged workout, counting back
@@ -138,5 +165,6 @@ final class AppState {
         pendingProfile = nil
         completions = []
         route = .landing
+        publishWidgetSnapshot()
     }
 }

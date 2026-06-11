@@ -21,6 +21,9 @@ struct MainTabView: View {
             NavigationStack { PlanView() }
                 .tabItem { Label("Plan", systemImage: "calendar") }
 
+            NavigationStack { ProgressDashboardView() }
+                .tabItem { Label("Progress", systemImage: "chart.bar.fill") }
+
             NavigationStack { ProfileView() }
                 .tabItem { Label("Profile", systemImage: "person.fill") }
         }

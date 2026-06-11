@@ -20,15 +20,21 @@ final class AppContainer {
     let exercises: ExerciseProviding
     let playlists: PlaylistStore
     let appState: AppState
+    let health: HealthWriting
+    let notifications: NotificationScheduling
 
     init(
         apiClient: APIClient = URLSessionAPIClient(),
         keyValueStore: KeyValueStore = UserDefaultsStore(),
-        exercises: ExerciseProviding = ExerciseRepository()
+        exercises: ExerciseProviding = ExerciseRepository(),
+        health: HealthWriting = HealthKitService(),
+        notifications: NotificationScheduling = LocalNotificationService()
     ) {
         self.apiClient = apiClient
         self.keyValueStore = keyValueStore
         self.exercises = exercises
+        self.health = health
+        self.notifications = notifications
         self.playlists = PlaylistStore(store: keyValueStore)
         let auth = MockAuthService(store: keyValueStore)
         self.authService = auth
@@ -55,6 +61,31 @@ final class AppContainer {
     enum SettingsKeys {
         static let anthropicKey = "settings.anthropicKey"
         static let anthropicModel = "settings.anthropicModel"
+        static let reminders = "settings.reminders"
+    }
+
+    // MARK: - Reminders (Profile screen)
+
+    var reminderSettings: ReminderSettings {
+        keyValueStore.value(forKey: SettingsKeys.reminders, as: ReminderSettings.self) ?? .default
+    }
+
+    /// Persists reminder prefs and (re)schedules local notifications. Requests
+    /// permission the first time reminders are switched on.
+    func updateReminders(_ settings: ReminderSettings) async {
+        keyValueStore.set(settings, forKey: SettingsKeys.reminders)
+        if settings.isEnabled {
+            let granted = await notifications.requestAuthorization()
+            guard granted else { return }
+        }
+        await notifications.reschedule(settings)
+    }
+
+    // MARK: - Health (Profile screen)
+
+    /// Prompts for Health sharing. Returns whether writing is now allowed.
+    func enableHealthSync() async -> Bool {
+        await health.requestAuthorization()
     }
 
     // MARK: - Settings (Profile screen)
@@ -116,7 +147,15 @@ final class AppContainer {
 
     func makeWorkoutPlayerViewModel(day: PlanDay) -> WorkoutPlayerViewModel {
         let vm = WorkoutPlayerViewModel(day: day, provider: exercises)
-        vm.onComplete = { [appState] completion in appState.didCompleteWorkout(completion) }
+        vm.liveActivity = WorkoutLiveActivityController()
+        vm.onComplete = { [appState, health] completion in
+            appState.didCompleteWorkout(completion)
+            Task { await health.save(completion) }
+        }
         return vm
+    }
+
+    func makeProgressViewModel() -> ProgressViewModel {
+        ProgressViewModel(appState: appState)
     }
 }
