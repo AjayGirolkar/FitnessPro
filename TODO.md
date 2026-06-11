@@ -21,19 +21,30 @@ Next sessions, roughly in priority order.
 - Needs: Firebase project, `GoogleService-Info.plist`, URL scheme, SPM deps in `project.yml`.
 - Move session token to **Keychain** (`Core/Storage/KeychainStore`), not UserDefaults.
 
-## 3. Progress tracking
-- Persist completed workouts; weekly streak, volume, weight log.
-- Swift Charts: weight trend, sessions/week, calories.
-- Files: `Features/Progress/`. New `WorkoutLog` model + store.
+## 3. Progress tracking ✅ DONE (session 3)
+- New **Progress tab** (`MainTabView`): lifetime stat grid (workouts/streak/volume/minutes),
+  weekly-activity bar chart (volume/sessions/minutes toggle), per-session volume trend
+  (line+area), personal records. Swift Charts, no deps.
+- Files: `Features/Progress/{Model/ProgressMetrics,ViewModel/ProgressViewModel,View/ProgressView}`.
+  `ProgressMetrics` is pure (testable) aggregation over `AppState.completions`.
+  View type is `ProgressDashboardView` (avoid clash w/ SwiftUI `ProgressView`).
+- Factory `makeProgressViewModel()` in `AppContainer`.
+- TODO: weight-log entry UI; unit tests for `ProgressMetrics` bucketing.
 
 ## 4. Plan customization & persistence
 - Edit `PlannedExercise` (sets/reps/rest/duration) and swap exercises in the plan.
 - Persist edits to the active plan (currently `ExerciseDetailView` customizer is local-only).
 - Reorder days, mark rest days.
 
-## 5. HealthKit
-- Read steps, heart rate, active energy; write workouts.
-- `HKHealthStore` permission flow + `Core/Health/HealthKitService`.
+## 5. HealthKit ✅ WRITE DONE (session 3)
+- Writes finished workouts to Apple Health (`.traditionalStrengthTraining` via
+  `HKWorkoutBuilder` + estimated active-energy sample) on completion.
+- Files: `Core/Health/HealthKitService.swift` (`HealthWriting` protocol, mockable).
+  Wired in `AppContainer.makeWorkoutPlayerViewModel` onComplete + `enableHealthSync()`.
+- Profile screen: "Sync to Apple Health" toggle (requests share auth).
+- Entitlement `Resources/FitnessPro.entitlements` (healthkit) + Info.plist usage strings.
+- ⚠️ DEVICE: needs a real `DEVELOPMENT_TEAM` + HealthKit capability on the profile to
+  run on hardware (builds fine on simulator unsigned). TODO: **read** steps/HR/energy.
 
 ## 6. Richer exercise media (optional upgrade)
 - Current: free-exercise-db static images via AsyncImage (good, free, public domain).
@@ -41,10 +52,22 @@ Next sessions, roughly in priority order.
   Keep behind an `ExerciseProviding` impl so the dataset swap is local.
 - Add offline image caching (e.g. URLCache tuning or a tiny disk cache).
 
-## 7. Engagement
-- Local notifications / workout reminders (`UNUserNotificationCenter`).
-- Home/Lock-screen Widgets + Live Activity during a workout.
-- Onboarding "Quick Start" → instant first session without full quiz (partly done).
+## 7. Engagement ✅ MOSTLY DONE (session 3)
+- ✅ **Local reminders** (`Core/Notifications/NotificationService.swift`,
+  `NotificationScheduling`). Profile card: toggle + time picker + weekday chips,
+  persisted as `ReminderSettings`, (re)scheduled via `UNCalendarNotificationTrigger`.
+  `AppContainer.updateReminders` requests auth on enable.
+- ✅ **Widget** (`Widgets/Extension/StreakWidget.swift`): streak/workouts/today focus,
+  families small+medium+lock-screen (rect/circular). Reads shared App Group snapshot
+  written by `AppState.publishWidgetSnapshot()` (`Widgets/Shared/WidgetSnapshot.swift`).
+- ✅ **Live Activity** (`Widgets/Extension/RestTimerLiveActivity.swift`): Lock Screen +
+  Dynamic Island rest timer, self-updating `Text(timerInterval:)`. Started/updated/ended
+  by `Core/LiveActivity/LiveActivityController.swift`, hooked into `WorkoutPlayerViewModel`
+  (start/beginRest/advance/stop). Attributes in `Widgets/Shared/WorkoutActivityAttributes.swift`.
+- New target `FitnessProWidgetsExtension` in `project.yml` (embedded, App Group entitlement).
+- ⚠️ DEVICE: App Group `group.com.ajaygirolkar.fitnesspro` + widget signing need a real
+  `DEVELOPMENT_TEAM`/provisioning to run on hardware. Simulator builds unsigned OK.
+- TODO: Onboarding "Quick Start" instant first session (partly done).
 
 ## 8. Nutrition (stretch)
 - Calorie/macro targets from `FitnessProfile`; simple food log.

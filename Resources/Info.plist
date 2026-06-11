@@ -45,6 +45,12 @@
 	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>FitnessPro saves your completed workouts to Apple Health so your training counts toward your activity rings.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>FitnessPro uses Health to log the workouts you finish in the app.</string>
 	<!-- Anthropic API key for AI plan generation. Leave empty; user can also enter it in Settings at runtime. -->
 	<key>ANTHROPIC_API_KEY</key>
 	<string></string>

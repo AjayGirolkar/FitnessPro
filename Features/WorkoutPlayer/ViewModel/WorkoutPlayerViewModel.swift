@@ -26,6 +26,7 @@ final class WorkoutPlayerViewModel {
     let day: PlanDay
     private let provider: ExerciseProviding
     var onComplete: ((CompletedWorkout) -> Void)?
+    var liveActivity: LiveActivityControlling?
 
     // MARK: State
     private(set) var exercises: [SessionExercise]
@@ -58,11 +59,14 @@ final class WorkoutPlayerViewModel {
                 self?.tick()
             }
         }
+        liveActivity?.start(focus: day.focus, totalExercises: exercises.count,
+                            state: contentState(resting: false, restEndsAt: .now))
     }
 
     func stop() {
         ticker?.cancel()
         ticker = nil
+        liveActivity?.end()
     }
 
     /// Halt/resume the clock — pauses elapsed time, rest countdown and any
@@ -190,6 +194,20 @@ final class WorkoutPlayerViewModel {
         guard rest > 0 else { advance(); return }
         restTotal = rest
         phase = .resting(secondsRemaining: rest)
+        liveActivity?.update(contentState(resting: true,
+                                          restEndsAt: .now.addingTimeInterval(Double(rest))))
+    }
+
+    /// Snapshot of the session for the Live Activity content state.
+    private func contentState(resting: Bool, restEndsAt: Date) -> WorkoutActivityAttributes.ContentState {
+        let done = exercises.filter { !$0.sets.isEmpty && $0.sets.allSatisfy(\.isDone) }.count
+        return WorkoutActivityAttributes.ContentState(
+            exerciseName: currentPlanned.name,
+            setLabel: "Set \(setNumber) of \(setCount)",
+            restEndsAt: restEndsAt,
+            isResting: resting,
+            completedExercises: done
+        )
     }
 
     private func restDidFinish() {
@@ -202,6 +220,7 @@ final class WorkoutPlayerViewModel {
         exerciseIndex = e
         setIndex = s
         phase = .exercise
+        liveActivity?.update(contentState(resting: false, restEndsAt: .now))
     }
 
     /// Next (exercise, set) index pair from the current position, or nil if done.
